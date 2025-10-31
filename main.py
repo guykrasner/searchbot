@@ -1,18 +1,29 @@
 import os
-
-from telegram.ext import ApplicationBuilder, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, CallbackContext
 from telegram import Update
-from telegram.ext import CallbackContext
+from aliexpress_api import AliexpressApi, models
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+ALI_KEY = os.getenv("ALI_KEY")
+ALI_SECRET = os.getenv("ALI_SECRET")
+
+aliexpress = AliexpressApi(ALI_KEY, ALI_SECRET, models.Language.EN, models.Currency.USD, tracking_id=None)
 
 async def handle_message(update: Update, context: CallbackContext):
-    text = update.message.text.lower()
-
-    if "בוט תחפש לי" in text:
-        await update.message.reply_text("אין בעיה אחפש לך")
+    text = update.message.text.strip()
+    if text.startswith("בוט תחפש לי"):
+        query = text[len("בוט תחפש לי"):].strip()
+        # מחפש מוצרים
+        response = aliexpress.get_products(keywords=query, max_sale_price=None)
+        products = response.products[:3]  # ניקח 3 הצעות
+        if not products:
+            await update.message.reply_text("לא הצלחתי למצוא מוצרים עם הקריטריונים שלך.")
+            return
+        reply = ""
+        for p in products:
+            reply += f"שם: {p.product_title}\nמחיר: {p.target_sale_price}\nקישור: {p.product_detail_url}\n\n"
+        await update.message.reply_text(reply)
 
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
 app.run_polling()
