@@ -3,7 +3,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, filters, CallbackCo
 from telegram import Update
 from aliexpress_api import AliexpressApi, models
 from deep_translator import GoogleTranslator
-import difflib
+from difflib import SequenceMatcher
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 ALI_KEY = os.getenv("ALI_KEY")
@@ -21,7 +21,7 @@ translator = GoogleTranslator(source='auto', target='en')
 
 
 def similarity(a: str, b: str) -> float:
-    return difflib.SequenceMatcher(None, a.lower(), b.lower()).ratio()
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
 
 async def handle_message(update: Update, context: CallbackContext):
