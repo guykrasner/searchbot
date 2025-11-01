@@ -69,9 +69,17 @@ async def handle_message(update: Update, context: CallbackContext):
 
         success_msg = random.choice(SUCCESS_MESSAGES).format(p.product_title)
 
-        reply += f"{success_msg}\n💵 {p.target_sale_price}$\n🔗 {aff_link}\n\n"
+        # עיצוב ההודעה עם Markdown
+        reply += (
+            f"🛍 {success_msg}\n"
+            f"💰 מחיר: *{p.target_sale_price}$*\n"
+            f"🔗 [לינק לרכישה]({aff_link})\n"
+            "----------------------------------------\n"
+        )
 
-    await update.message.reply_text(reply)
+    # שליחת ההודעה בלי קריסת Unicode
+    reply = reply.encode('utf-8', errors='ignore').decode('utf-8')
+    await update.message.reply_text(reply, parse_mode="Markdown")
 
 
 app = ApplicationBuilder().token(TOKEN).build()
