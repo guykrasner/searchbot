@@ -1,4 +1,5 @@
 import os
+import random
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, CallbackContext
 from telegram import Update
 from aliexpress_api import AliexpressApi, models
@@ -21,6 +22,12 @@ translator = GoogleTranslator(source='auto', target='en')
 
 TRIGGERS = ["בוט תחפש לי", "מצא לי", "תחפש לי", "חפש לי", "תמצא לי"]
 
+SUCCESS_MESSAGES = [
+    "יש! מצאתי לך את מה שחיפשת:\n '{}'",
+    "הנה זה! המוצר שדיברת עליו נמצא:\n '{}'",
+    "החיפוש הצליח! מצאתי את המוצר המדויק:\n '{}'"
+]
+
 def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
@@ -36,10 +43,10 @@ async def handle_message(update: Update, context: CallbackContext):
     if not trigger_used:
         return
 
-    query = text[len("בוט תחפש לי"):].strip()
+    query = text[len(trigger_used):].strip()
     query_en = translator.translate(query)
 
-    response = aliexpress.get_products(keywords=query_en, max_sale_price=None, page_size=20)
+    response = aliexpress.get_products(keywords=query_en, max_sale_price=None, page_size=500)
     products = getattr(response, 'products', [])
 
     if not products:
@@ -60,7 +67,9 @@ async def handle_message(update: Update, context: CallbackContext):
         except Exception:
             aff_link = p.product_detail_url
 
-        reply += f"שם: {p.product_title}\nמחיר: {p.target_sale_price}\nקישור: {aff_link}\n\n"
+        success_msg = random.choice(SUCCESS_MESSAGES).format(p.product_title)
+
+        reply += f"{success_msg}\n💵 {p.target_sale_price}$\n🔗 {aff_link}\n\n"
 
     await update.message.reply_text(reply)
 
