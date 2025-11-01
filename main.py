@@ -19,6 +19,7 @@ aliexpress = AliexpressApi(
 
 translator = GoogleTranslator(source='auto', target='en')
 
+TRIGGERS = ["בוט תחפש לי", "מצא לי", "תחפש לי", "חפש לי", "תמצא לי"]
 
 def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
@@ -26,34 +27,42 @@ def similarity(a: str, b: str) -> float:
 
 async def handle_message(update: Update, context: CallbackContext):
     text = update.message.text.strip()
-    if text.startswith("בוט תחפש לי"):
-        query = text[len("בוט תחפש לי"):].strip()
-        query_en = translator.translate(query)
+    trigger_used = None
+    for trig in TRIGGERS:
+        if text.startswith(trig):
+            trigger_used = trig
+            break
 
-        response = aliexpress.get_products(keywords=query_en, max_sale_price=None, page_size=20)
-        products = getattr(response, 'products', [])
+    if not trigger_used:
+        return
 
-        if not products:
-            await update.message.reply_text("לא הצלחתי למצוא מוצרים עם הקריטריונים שלך.")
-            return
+    query = text[len("בוט תחפש לי"):].strip()
+    query_en = translator.translate(query)
 
-        products_sorted = sorted(
-            products,
-            key=lambda p: similarity(query_en, p.product_title),
-            reverse=True
-        )
+    response = aliexpress.get_products(keywords=query_en, max_sale_price=None, page_size=20)
+    products = getattr(response, 'products', [])
 
-        reply = ""
-        for p in products_sorted[:5]:
-            try:
-                affiliate_links = aliexpress.get_affiliate_links(p.product_detail_url)
-                aff_link = affiliate_links[0].promotion_link if affiliate_links else p.product_detail_url
-            except Exception:
-                aff_link = p.product_detail_url
+    if not products:
+        await update.message.reply_text("לא הצלחתי למצוא מוצרים עם הקריטריונים שלך.")
+        return
 
-            reply += f"שם: {p.product_title}\nמחיר: {p.target_sale_price}\nקישור: {aff_link}\n\n"
+    products_sorted = sorted(
+        products,
+        key=lambda p: similarity(query_en, p.product_title),
+        reverse=True
+    )
 
-        await update.message.reply_text(reply)
+    reply = ""
+    for p in products_sorted[:5]:
+        try:
+            affiliate_links = aliexpress.get_affiliate_links(p.product_detail_url)
+            aff_link = affiliate_links[0].promotion_link if affiliate_links else p.product_detail_url
+        except Exception:
+            aff_link = p.product_detail_url
+
+        reply += f"שם: {p.product_title}\nמחיר: {p.target_sale_price}\nקישור: {aff_link}\n\n"
+
+    await update.message.reply_text(reply)
 
 
 app = ApplicationBuilder().token(TOKEN).build()
