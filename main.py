@@ -14,7 +14,7 @@ aliexpress = AliexpressApi(
     ALI_SECRET,
     models.Language.EN,
     models.Currency.USD,
-    tracking_id=None
+    tracking_id="default"
 )
 
 translator = GoogleTranslator(source='auto', target='en')
@@ -30,7 +30,7 @@ async def handle_message(update: Update, context: CallbackContext):
         query = text[len("בוט תחפש לי"):].strip()
         query_en = translator.translate(query)
 
-        response = aliexpress.get_products(keywords=query_en, max_sale_price=None, page_size=100)
+        response = aliexpress.get_products(keywords=query_en, max_sale_price=None, page_size=20)
         products = getattr(response, 'products', [])
 
         if not products:
@@ -44,11 +44,19 @@ async def handle_message(update: Update, context: CallbackContext):
         )
 
         reply = ""
-        for p in products_sorted[:3]:
-            reply += f"שם: {p.product_title}\nמחיר: {p.target_sale_price}\nקישור: {p.product_detail_url}\n\n"
+        for p in products_sorted[:5]:
+            try:
+                affiliate_links = aliexpress.get_affiliate_links(p.product_detail_url)
+                aff_link = affiliate_links[0].promotion_link if affiliate_links else p.product_detail_url
+            except Exception:
+                aff_link = p.product_detail_url
+
+            reply += f"שם: {p.product_title}\nמחיר: {p.target_sale_price}\nקישור: {aff_link}\n\n"
 
         await update.message.reply_text(reply)
 
+
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+print("🤖 Bot is running...")
 app.run_polling()
