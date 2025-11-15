@@ -1,0 +1,4 @@
+python-telegram-bot==21.6
+aliexpress-api
+deep-translator
+requests==2.23.0
