@@ -1,4 +1,5 @@
-python-telegram-bot==21.6
-python-aliexpress-api==3.1.0
-deep-translator==1.11.4
-requests==2.23.0
+python-telegram-bot
+python-aliexpress-api
+deep-translator
+requests
+sentence-transformers
